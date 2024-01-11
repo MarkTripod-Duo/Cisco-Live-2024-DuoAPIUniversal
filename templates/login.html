@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+
+{% block body %}
+    {% if error %}
+        <p class=error><strong>Notice:</strong> {{ error }}
+    {% endif %}
+    <h2>Login to your account</h2>
+    <form action="#" method="post">
+        <label for="username">Username:</label>
+        <input type="text" name="username"/>
+        <br><br>
+        <label for="password">Password:</label>
+        <input type="password" name="password"/>
+        <br><br>
+        <button type="submit">Login</button>
+    </form>
+{% endblock %}
