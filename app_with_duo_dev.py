@@ -3,19 +3,32 @@ Demo for basic web application with user authentication. To be used for
 showing how to add Duo MFA authentication to an existing application.
 """
 
-from flask import Flask, redirect, render_template, request, url_for, session
+from flask import Flask, redirect, render_template, request, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user
+import time
+import webbrowser
 
 import duo_client
 
-IKEY = 'DI8H6LDLJZ58SV9CMTNT'
-SKEY = 'j0yDaRHkw5FtjetzU39gkd6iIguMn9brwluhbTUu'
+AUTH_IKEY = 'DI8H6LDLJZ58SV9CMTNT'
+AUTH_SKEY = 'j0yDaRHkw5FtjetzU39gkd6iIguMn9brwluhbTUu'
 API_HOST = 'api-731c6826.duosecurity.com'
 
+ADMIN_IKEY = 'DIW9XT14VIIAH3L427I8'
+ADMIN_SKEY = '8iQEKjOCxjjvwYKFZ77ztkcd60c7aToMlf8zZiDs'
+
+DUO_USER_GROUP_NAME = 'DevNet_Users'
+
 auth_client = duo_client.Auth(
-        ikey=IKEY,
-        skey=SKEY,
+        ikey=AUTH_IKEY,
+        skey=AUTH_SKEY,
+        host=API_HOST
+)
+
+admin_client = duo_client.Admin(
+        ikey=ADMIN_IKEY,
+        skey=ADMIN_SKEY,
         host=API_HOST
 )
 
@@ -41,7 +54,61 @@ class Users(UserMixin, db.Model):
 @login_manager.user_loader
 def loader_user(user_id):
     """Retrieve user from DB"""
-    return Users.query.get(user_id)
+    return db.session.get(user_id)
+
+
+def create_duo_group(group_name: str) -> str or None:
+    """Create User Group in Duo for Policy Enforcement"""
+    create_duo_group_response = admin_client.create_group(name=group_name)
+    if 'group_id' in create_duo_group_response:
+        return create_duo_group_response['group_id']
+    else:
+        return create_duo_group_response
+
+
+def retrieve_duo_group(group_name: str) -> str or dict:
+    """Retrieve group ID from Duo. Creates group if it doesn't exist'"""
+    group_list = admin_client.get_groups()
+    if isinstance(group_list, list):
+        for group in group_list:
+            if group['name'] == group_name:
+                return group['group_id']
+        return create_duo_group(group_name)
+    if isinstance(group_list, dict):
+        # Error occurred
+        return group_list
+
+
+def add_duo_user_to_group(duo_group_id: str, duo_user_id: str) -> bool or dict:
+    """Add Duo User to Duo Group"""
+    add_duo_user_group_response = admin_client.add_user_group(user_id=duo_user_id, group_id=duo_group_id)
+    if add_duo_user_group_response == '':
+        return True
+    else:
+        return add_duo_user_group_response
+
+
+def register_user_with_duo(username: str) -> dict or bool:
+    """Use Duo Admin API to create new user and add to group for policy enforcement"""
+    try:
+        add_duo_user_response = admin_client.add_user(username=username)
+    except RuntimeError as e_str:
+        print(e_str)
+        return False
+
+    if 'user_id' in add_duo_user_response:
+        user_id = add_duo_user_response['user_id']
+        group_id = retrieve_duo_group(DUO_USER_GROUP_NAME)
+        if isinstance(group_id, str):
+            add_duo_user_to_group_response = add_duo_user_to_group(duo_group_id=group_id, duo_user_id=user_id)
+            if isinstance(add_duo_user_to_group_response, bool) and add_duo_user_to_group_response is True:
+                return True
+            else:
+                return add_duo_user_to_group_response
+        else:
+            return group_id
+    else:
+        return add_duo_user_response
 
 
 @app.route('/register', methods=["GET", "POST"])
@@ -53,12 +120,25 @@ def register():
                      password=request.form.get("password"))
         # Add the user to the database
         db.session.add(user)
+
+        # Register the new user with Cisco Duo
+        register_user_with_duo_result = register_user_with_duo(username=user.username)
+        if (isinstance(register_user_with_duo_result, dict)
+                or (isinstance(register_user_with_duo_result, bool) and register_user_with_duo_result is False)):
+            flash(f"Error registering user {user.username} with Cisco Duo.")
+            db.session.rollback()
+            return redirect(url_for("home"))
+
         # Commit the changes made
         db.session.commit()
+
         # Once user account created, redirect them
         # to login route (created later on)
+        flash(f"User {user.username} successfully registered.")
+        time.sleep(2)
         return redirect(url_for("login"))
-    # Renders sign_up template if user made a GET request
+
+    # Renders registration template if user made a GET request
     return render_template("register.html")
 
 
@@ -77,16 +157,20 @@ def login():
                 error = f"Duo service is unreachable. Please try again."
                 return render_template("login.html", error=error)
             if not check_duo():
-                error = f"Provided Duo API credentials are invalid. Please verify the AUTH_IKEY, AUTH_SKEY and API_HOST values."
+                error = (f"Provided Duo API credentials are invalid. Please verify the AUTH_IKEY, "
+                         + "AUTH_SKEY and API_HOST values.")
                 return render_template("login.html", error=error)
             session["username"] = user.username
             result = duo_auth(user.username)
             if result[0] in ["Success", "Bypass"]:
+                flash("Cisco Duo MFA completed successfully!", "success")
                 login_user(user)
                 return redirect(url_for("home"))
             elif result[0] == "Enroll":
-                return redirect(result[1])
+                webbrowser.open_new_tab(result[1])
+                return redirect(url_for("login"))
             elif result[0] == "Deny":
+                flash(f"Access denied. Missing Cisco Duo group membership.")
                 return redirect(url_for("logout"))
     return render_template("login.html", error=error)
 
