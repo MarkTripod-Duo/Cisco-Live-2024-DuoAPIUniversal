@@ -6,7 +6,7 @@ showing how to add Duo MFA authentication to an existing application.
 from flask import Flask, redirect, render_template, request, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user
-import time
+from flask_bcrypt import Bcrypt
 import webbrowser
 
 import duo_client
@@ -35,6 +35,7 @@ admin_client = duo_client.Admin(
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///db.sqlite"
 app.config["SECRET_KEY"] = "304394495a2d7fb18325537ce16c5ff64e9492db53b85806fd48e22a43a09f35adf48867"
+bcrypt = Bcrypt(app)
 
 db = SQLAlchemy()
 db.init_app(app)
@@ -54,7 +55,7 @@ class Users(UserMixin, db.Model):
 @login_manager.user_loader
 def loader_user(user_id):
     """Retrieve user from DB"""
-    return db.session.get(user_id)
+    return Users.query.get(user_id)
 
 
 def create_duo_group(group_name: str) -> str or None:
@@ -116,8 +117,9 @@ def register():
     """Register a new user"""
     # If the user made a POST request, create a new user
     if request.method == "POST":
+        pswd = bcrypt.generate_password_hash(request.form.get('password')).decode()
         user = Users(username=request.form.get("username"),
-                     password=request.form.get("password"))
+                     password=pswd)
         # Add the user to the database
         db.session.add(user)
 
@@ -135,7 +137,6 @@ def register():
         # Once user account created, redirect them
         # to login route (created later on)
         flash(f"User {user.username} successfully registered.")
-        time.sleep(2)
         return redirect(url_for("login"))
 
     # Renders registration template if user made a GET request
@@ -147,10 +148,11 @@ def login():
     """Display login screen"""
     error = None
     if request.method == "POST":
-        user = Users.query.filter_by(
-                username=request.form.get("username")).first()
-        # Check if the password entered is the same as the user's password
-        if user.password != request.form.get("password"):
+        username = request.form.get("username")
+        user = db.session.execute(db.select(Users).filter_by(username=username)).scalar_one()
+        # user = Users.query.filter_by(
+        #       username=request.form.get("username")).first()
+        if not bcrypt.check_password_hash(user.password, request.form.get("password")):
             error = "Invalid credentials."
         else:
             if not ping_duo():
