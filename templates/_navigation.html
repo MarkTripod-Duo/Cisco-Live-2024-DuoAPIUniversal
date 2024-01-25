@@ -3,8 +3,15 @@
 <div class="menubar">
 <menu>
 {% for menu_item in ["home", "register", "login", "logout"] %}
-    <li><a href="{{ url_for(menu_item) }}"><button id="{{ menu_item }}">{{ menu_item.upper() }}</button></a></li>
+    <li></li><a href="{{ url_for(menu_item) }}">
+    <button id="{{ menu_item }}">{{ menu_item.upper() }}</button>
+</a></li>
 {% endfor %}
 </menu>
 </div>
+    {% if username %}
+        <div class="login">
+            You are logged in as {{ username }}
+        </div>
+    {% endif %}
 </nav>

@@ -1,79 +1,36 @@
-"""
-Demo for basic web application with user authentication. To be used for
-showing how to add Duo MFA authentication to an existing application.
-"""
-from __future__ import annotations, print_function
+# Cisco Live EMEA 2024
 
-import argparse
-import configparser
+# DEVWKS-1698 - Using Cisco Duo APIs to add MFA to Web Applications
+
+---
+
+## 02 - Duo Application Integration
+
+With the necessary Duo Web SDK integration in place in the trial account, it is time to update
+the demonstration application to make use of the Duo service for MFA.
+
+The `duo_univeral` [python library](https://github.com/duosecurity/duo_universal_python) will be used to easily
+integrate
+the demonstration application with Duo APIs. The SDK provides automatic creation of the necessary authentication headers
+as well as methods for easy access to all of the available API endpoints.
+
+---
+
+### Section 1 - Add the Duo API functionality to the application
+
+---
+
+1. Open the [app.py](../app_orig.py) file in the VsCode application.
+2. Add the following statements to the `import` statements at the top of the file (line 16):
+
+```python
 import json
-import os
-import traceback
-
 from duo_universal.client import Client, DuoException
-from flask import Flask, flash, redirect, render_template, request, session, url_for
-from flask_bcrypt import Bcrypt
-from flask_login import LoginManager, UserMixin, login_user, logout_user
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.exc import NoResultFound
+```
 
-import duo_utils
+3. Replace the `login` function with the following code:
 
-app_logger = duo_utils.get_logger()
-
-app = Flask(__name__)
-app.secret_key = os.urandom(32)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///db.sqlite"
-app.config["SECRET_KEY"] = os.getenv('DB_SECRET_KEY')
-
-bcrypt = Bcrypt(app)
-
-db = SQLAlchemy()
-db.init_app(app)
-with app.app_context():
-    db.create_all()
-
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.session_protection = "strong"
-
-
-class Users(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(250), unique=True, nullable=False)
-    password = db.Column(db.String(250), nullable=False)
-
-
-@login_manager.user_loader
-def loader_user(user_id):
-    """Retrieve user from DB"""
-    try:
-        return Users.query.session.execute(db.select(Users).where(Users.id == user_id))
-    except NoResultFound:
-        return None
-
-
-@app.route('/register', methods=["GET", "POST"])
-def register():
-    """Register a new user in the database"""
-    # If the user made a POST request, create a new user
-    if request.method == "POST":
-        pswd = bcrypt.generate_password_hash(request.form.get('password')).decode()
-        user = Users(username=request.form.get("username"),
-                     password=pswd)
-        # Add the user to the database
-        db.session.add(user)
-        db.session.commit()
-
-        flash(f"User {user.username} successfully registered.")
-        app_logger.info("User %s successfully registered.", user.username)
-        # Send the user to the login page after successful registration
-        return redirect(url_for("login"))
-    # Respond with the registration page if not a POST request
-    return render_template("register.html")
-
-
-@app.route("/login", methods=["GET", "POST"])
+```python
 def login():
     """Display login screen"""
     error = None
@@ -110,8 +67,11 @@ def login():
             return render_template("login.html", error=error)
     # Display the login page if not a POST request
     return render_template("login.html", error=error)
+```
 
+4. Add the new `callback` route and function to handle redirects from Duo once MFA is complete.
 
+```python
 @app.route("/duo-callback")
 def duo_callback():
     """Get state to verify consistency and originality"""
@@ -150,48 +110,12 @@ def duo_callback():
     else:
         app_logger.warning("Unable to add user %s to session successfully.", username)
         return render_template("home.html", error="Unable to add user to session information.")
+```
 
+5. Uncomment the SDK client code at the bottom of the app.py file by removing the lines that begin with `"""`
 
-@app.route("/logout")
-def logout():
-    """Log user out and redirect to home page"""
-    if 'username' in session:
-        app_logger.info("User %s logged out.", session['username'])
-        session.pop('username', None)
-        logout_user()
-    return redirect(url_for("home"))
-
-
-@app.route("/")
-def home():
-    """Display home page"""
-    if "username" in session:
-        username = session.get("username")
-    else:
-        username = None
-    return render_template("home.html", username=username)
-
-
-def parse():
-    parser = argparse.ArgumentParser(
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parser.add_argument(
-            "-c",
-            "--config",
-            help="The config section from duo.conf to use",
-            default="duo",
-            metavar=''
-    )
-
-    return parser.parse_known_args()[0]
-
-
-config = configparser.ConfigParser()
-config.read("instance/duo.conf")
-
-config_section = parse().config
-
+```python
+""" Uncomment the following lines to enable the Cisco Duo SDK client
 try:
     duo_client = Client(
             client_id=config[config_section]['client_id'],
@@ -203,8 +127,11 @@ try:
 except DuoException as e:
     print("*** Duo config error. Verify the values in duo.conf are correct ***")
     raise e
+"""
+```
 
-duo_failmode = config[config_section]['failmode']
+6. Save the changes and either wait for the application to automatically reload, or stop the
+   program using the CTRL-C keystroke and then running the application again using the `python3 app.py` command.
 
-if __name__ == '__main__':
-    app.run(host=config[config_section]['app_host'], port=int(config[config_section]['app_port']), debug=True)
+The full working application with Cisco Duo added and functional can be found in
+the [app_with_duo.py](../app_with_duo.py) file.
