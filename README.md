@@ -37,7 +37,7 @@ Begin by starting the the demonstration application.
 3. Open a web browser and follow the link provided in the output of the demonstration application initialization
 4. Register a user with the application by selecting the `REGISTER` button in the blue menubar.
 5. Now that the application is running and a user has been registered,
-   the [next step](Tutorial_Instructions/01-Create_Web_SDK_Integration) is to add Cisco Duo MFA.
+   the [next step](Tutorial_Instructions/01-Create_Web_SDK_Integration.md) is to add Cisco Duo MFA.
 
 ----
 
