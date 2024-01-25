@@ -133,5 +133,8 @@ except DuoException as e:
 6. Save the changes and either wait for the application to automatically reload, or stop the
    program using the CTRL-C keystroke and then running the application again using the `python3 app.py` command.
 
+7. Once the new code is in place and the application has been restarted, login with the user previously registered user.
+   The Cisco Duo enrollment process should begin once the username and password are verified.
+
 The full working application with Cisco Duo added and functional can be found in
 the [app_with_duo.py](../app_with_duo.py) file.
