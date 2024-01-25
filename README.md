@@ -33,10 +33,11 @@ They are:
 Begin by starting the the demonstration application.
 
 1. In the command terminal navigate to the root project `DuoAPI` directory
-2. Run the command `python3 app.py run` in the command terminal to start the demonstration application
-3. Open a web browser and follow the link provided in the output of the demonstration application initialization
-4. Register a user with the application by selecting the `REGISTER` button in the blue menubar.
-5. Now that the application is running and a user has been registered,
+2. Make sure all of the required python modules are installed by running `pip3 install -r requirements.txt`
+3. Run the command `python3 app.py run` in the command terminal to start the demonstration application
+4. Open a web browser and follow the link provided in the output of the demonstration application initialization
+5. Register a user with the application by selecting the `REGISTER` button in the blue menubar.
+6. Now that the application is running and a user has been registered,
    the [next step](Tutorial_Instructions/01-Create_Web_SDK_Integration.md) is to add Cisco Duo MFA.
 
 ----
