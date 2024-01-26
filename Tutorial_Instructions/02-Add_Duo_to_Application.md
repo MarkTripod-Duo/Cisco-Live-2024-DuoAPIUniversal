@@ -28,7 +28,25 @@ import json
 from duo_universal.client import Client, DuoException
 ```
 
-3. Replace the `login` function with the following code:
+3. Uncomment the SDK client code at the bottom of the app.py file by removing the lines that begin with `"""`
+
+```python
+""" Uncomment the following lines to enable the Cisco Duo SDK client
+try:
+    duo_client = Client(
+            client_id=config[config_section]['client_id'],
+            client_secret=config[config_section]['client_secret'],
+            host=config[config_section]['api_hostname'],
+            redirect_uri=config[config_section]['redirect_uri'],
+            duo_certs=config[config_section].get('duo_certs'),
+    )
+except DuoException as e:
+    print("*** Duo config error. Verify the values in duo.conf are correct ***")
+    raise e
+"""
+```
+
+4. Replace the `login` function with the following code:
 
 ```python
 def login():
@@ -69,7 +87,7 @@ def login():
     return render_template("login.html", error=error)
 ```
 
-4. Add the new `callback` route and function to handle redirects from Duo once MFA is complete.
+5. Add the new `callback` route and function to handle redirects from Duo once MFA is complete.
 
 ```python
 @app.route("/duo-callback")
@@ -110,24 +128,6 @@ def duo_callback():
     else:
         app_logger.warning("Unable to add user %s to session successfully.", username)
         return render_template("home.html", error="Unable to add user to session information.")
-```
-
-5. Uncomment the SDK client code at the bottom of the app.py file by removing the lines that begin with `"""`
-
-```python
-""" Uncomment the following lines to enable the Cisco Duo SDK client
-try:
-    duo_client = Client(
-            client_id=config[config_section]['client_id'],
-            client_secret=config[config_section]['client_secret'],
-            host=config[config_section]['api_hostname'],
-            redirect_uri=config[config_section]['redirect_uri'],
-            duo_certs=config[config_section].get('duo_certs'),
-    )
-except DuoException as e:
-    print("*** Duo config error. Verify the values in duo.conf are correct ***")
-    raise e
-"""
 ```
 
 6. Save the changes and either wait for the application to automatically reload, or stop the
