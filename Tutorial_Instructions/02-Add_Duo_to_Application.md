@@ -1,18 +1,14 @@
 # Cisco Live EMEA 2024
 
-# DEVWKS-1698 - Using Cisco Duo APIs to add MFA to Web Applications
+## DEVWKS-1698 - Using Cisco Duo APIs to add MFA to Web Applications
 
----
+With the necessary Duo Web SDK integration in place, it is time to update
+the demonstration application to make use of the Cisco Duo service for MFA.
 
-## 02 - Duo Application Integration
-
-With the necessary Duo Web SDK integration in place in the trial account, it is time to update
-the demonstration application to make use of the Duo service for MFA.
-
-The `duo_univeral` [python library](https://github.com/duosecurity/duo_universal_python) will be used to easily
-integrate
-the demonstration application with Duo APIs. The SDK provides automatic creation of the necessary authentication headers
-as well as methods for easy access to all of the available API endpoints.
+The `duo_univeral` [python library](https://github.com/duosecurity/duo_universal_python) will be used
+to easily integrate the demonstration application with Duo APIs. The SDK provides automatic creation
+of the necessary authentication headers as well as methods for easy access to all of the available API
+endpoints.
 
 ---
 
@@ -20,33 +16,36 @@ as well as methods for easy access to all of the available API endpoints.
 
 ---
 
-1. Open the [app.py](../app_orig.py) file in the VsCode application.
-2. Add the following statements to the `import` statements at the top of the file (line 16):
+1. Stop the demonstration app if it is running.
+2. Open the [app.py](../app.py) file in the Visual Studio Code application.
+3. Add the following statements to the `import` statements at the top of the file (after line 18):
 
 ```python
 import json
 from duo_universal.client import Client, DuoException
 ```
 
-3. Uncomment the SDK client code at the bottom of the app.py file by removing the lines that begin with `"""`
+4. Uncomment the SDK client code at the bottom of the app.py file by removing the lines that begin with `"""`
 
 ```python
-""" Uncomment the following lines to enable the Cisco Duo SDK client
-try:
-    duo_client = Client(
-            client_id=config[config_section]['client_id'],
-            client_secret=config[config_section]['client_secret'],
-            host=config[config_section]['api_hostname'],
-            redirect_uri=config[config_section]['redirect_uri'],
-            duo_certs=config[config_section].get('duo_certs'),
-    )
-except DuoException as e:
-    print("*** Duo config error. Verify the values in duo.conf are correct ***")
-    raise e
-"""
+    """ Uncomment this block for Duo configuration
+    try:
+        duo_client = Client(
+                client_id=config[config_section]['client_id'],
+                client_secret=config[config_section]['client_secret'],
+                host=config[config_section]['api_hostname'],
+                redirect_uri=config[config_section]['redirect_uri'],
+                duo_certs=config[config_section].get('duo_certs'),
+        )
+    except DuoException as e:
+        print("*** Duo config error. Verify the values in duo.conf are correct ***")
+        raise e
+
+    duo_failmode = config[config_section]['failmode']
+    """
 ```
 
-4. Replace the `login` function with the following code:
+5. Replace the `login` function with the following code:
 
 ```python
 def login():
@@ -87,12 +86,12 @@ def login():
     return render_template("login.html", error=error)
 ```
 
-5. Add the new `callback` route and function to handle redirects from Duo once MFA is complete.
+6. Uncomment the `callback` route and function to handle redirects from Duo once MFA is complete.
 
 ```python
+""" Uncomment this block for Duo
 @app.route("/duo-callback")
 def duo_callback():
-    """Get state to verify consistency and originality"""
     state = request.args.get('state')
 
     # Get authorization token to trade for 2FA
@@ -113,28 +112,39 @@ def duo_callback():
         return render_template("login.html",
                                message="Duo state does not match saved state")
 
-    decoded_token = duo_client.exchange_authorization_code_for_2fa_result(code, username)
+    try:
+        decoded_token = duo_client.exchange_authorization_code_for_2fa_result(code, username)
+    except DuoException as duo_exception:
+        app_logger.exception(f"Unable to exchange authorization code for token: {duo_exception}")
+        return render_template("login.html", error=duo_exception)
 
     # Exchange happened successfully so render success page
     # return render_template("success.html",
     #                        message=json.dumps(decoded_token, indent=2, sort_keys=True))
-    app_logger.info("Login successful for %s!", username)
-    session["username"] = username
     user = db.session.execute(db.select(Users).filter_by(username=username)).scalar_one()
     if login_user(user):
-        app_logger.info("User %s added to session successfully.", username)
+        app_logger.info("User %s logged in and added to session successfully.", username)
+        session["username"] = username
         return render_template("home.html",
-                               message=json.dumps(decoded_token, indent=2, sort_keys=True))
+                               message=json.dumps(decoded_token, indent=2, sort_keys=True), username=username)
     else:
         app_logger.warning("Unable to add user %s to session successfully.", username)
         return render_template("home.html", error="Unable to add user to session information.")
+"""
 ```
 
-6. Save the changes and either wait for the application to automatically reload, or stop the
+7. Save the changes and either wait for the application to automatically reload, or stop the
    program using the CTRL-C keystroke and then running the application again using the `python3 app.py` command.
 
-7. Once the new code is in place and the application has been restarted, login with the user previously registered user.
+8. Once the new code is in place and the application has been restarted, login with the user previously registered user.
    The Cisco Duo enrollment process should begin once the username and password are verified.
+9. Save the changes to the `app.py` file.
+
+The [next step](03-Test_Duo_Addition_to_Application.md) is to test the addition of Cisco Duo MFA to the application.
+
+---
+
+### Note
 
 The full working application with Cisco Duo added and functional can be found in
-the [app_with_duo.py](../app_with_duo.py) file.
+the [app_with_duo.py](../app_with_duo.py) file for reference.
