@@ -1,13 +1,17 @@
 {% extends "layout.html" %}
 
 {% block body %}
-  {% if error %}
-    <p class=error><strong>Notice:</strong> {{ error }}
-  {% endif %}
+    {% if error %}
+        <p class=error><strong>Notice:</strong> {{ error }}
+    {% endif %}
 
 {% if message %}
     <div>
         <pre class="language-json"><code class="language-json" id="message">{{ message }}</code></pre>
     </div>
+{% elif not username %}
+    <div style="align-self: stretch;"><p></p></div>
+    <div style="text-align: left; padding-left: 25px">Please select one of the buttons above</div>
 {% endif %}
+
 {% endblock %}

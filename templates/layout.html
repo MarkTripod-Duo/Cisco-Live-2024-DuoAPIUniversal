@@ -9,7 +9,7 @@
 </head>
 <header>
     <h1>Example Web Application</h1>
-    {% include "_navigation.html" %}
+    {% include "_navigation.html" with context %}
 </header>
 {% with messages = get_flashed_messages() %}
     {% if messages %}
@@ -20,5 +20,6 @@
         </ul>
     {% endif %}
 {% endwith %}
-{% block body %}{% endblock %}
+{% block body %}
+{% endblock %}
 </html>
