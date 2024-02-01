@@ -10,7 +10,7 @@ With the addition of Cisco Duo MFA to the application in place, it is time to te
 
 ---
 
-1. Open a terminal window and navigate to the root folder of the project (`./DuoAPIUniversal`).
+1. Open a terminal window and navigate to the root folder of the project (`./Cisco-Live-2024-DuoUniversal/`).
 2. Run the command `python3 app.py run` in the command terminal to start the demonstration application.
 3. Open a web browser and follow the link provided in the output of the demonstration application initialization (the
    default is http://localhost:8008).

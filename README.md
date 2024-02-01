@@ -36,7 +36,7 @@ They are:
 ----
 
 1. Clone this repository or download the ZIP file and unpack the contents
-2. Open a terminal window and navigate to the root folder of the project (`./DuoAPIUniversal`).
+2. Open a terminal window and navigate to the root folder of the project (`./Cisco-Live-2024-DuoUniversal/`).
 3. Create a virtual environment using the command `python3 -m venv .`
 4. Activate the virtual environment:
     - The syntax of the activation command is platform
@@ -54,7 +54,7 @@ They are:
 ----
 Begin by starting the demonstration application.
 
-1. In the command terminal navigate to the root project `./DuoAPIUniversal` directory
+1. In the command terminal navigate to the root project `./Cisco-Live-2024-DuoUniversal/` directory
 2. Run the command `python3 app.py run` in the command terminal to start the demonstration application
 3. Open a web browser and follow the link provided in the output of the demonstration application initialization (the
    default is http://localhost:8008)
