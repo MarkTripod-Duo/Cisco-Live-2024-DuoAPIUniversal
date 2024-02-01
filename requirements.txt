@@ -3,7 +3,6 @@ flask-login
 flask-sqlalchemy
 flask-bcrypt
 SQLAlchemy~=2.0.25
-python-dotenv~=1.0.0
 configparser>=4.0.2
 argparse
 duo_universal>=2.0.3
