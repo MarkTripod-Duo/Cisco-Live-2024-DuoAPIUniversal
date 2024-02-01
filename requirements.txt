@@ -1,0 +1,8 @@
+Flask~=3.0.0
+flask-login
+flask-sqlalchemy
+flask-bcrypt
+SQLAlchemy~=2.0.25
+configparser>=4.0.2
+argparse
+duo_universal>=2.0.3
