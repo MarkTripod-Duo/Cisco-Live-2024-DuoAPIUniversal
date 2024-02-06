@@ -17,6 +17,9 @@ from sqlalchemy.exc import NoResultFound, NoSuchTableError
 
 import duo_utils
 
+makeimport traceback
+from duo_universal.client import Client, DuoExecption
+
 DEBUG = False
 cfg_file = "instance/duo.conf"
 app_logger = duo_utils.get_logger()
@@ -120,7 +123,6 @@ def login():
                 session["state"] = state
                 session["username"] = username
                 prompt_uri = duo_client.create_auth_url(username, state)
-                duo_response_obj = make_response()
                 # Redirect the browser to the Duo hosted authentication prompt
                 return redirect(prompt_uri)
                 """
